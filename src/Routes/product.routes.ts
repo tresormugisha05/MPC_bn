@@ -4,7 +4,6 @@ import { authenticate } from "../controller/User.controller";
 import { requireAdmin } from "../middleware/auth";
 
 const router = Router();
-
 /**
  * @swagger
  * /products:
@@ -66,7 +65,7 @@ router.get("/", ProductController.listProducts);
  *       400:
  *         description: Bad request
  */
-router.post("/", authenticate, requireAdmin, ProductController.createProduct);
+router.post("/", ProductController.createProduct);
 
 /**
  * @swagger

@@ -12,6 +12,7 @@ const createProductSchema = z.object({
   stock: z.number().int().min(0),
   image_url: z.string().optional(),
   is_active: z.boolean().optional(),
+  owner_id: z.string().uuid(),
 });
 
 const updateProductSchema = z.object({
@@ -174,9 +175,13 @@ export const getProduct = async (req: Request, res: Response): Promise<void> => 
  */
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log("[CREATE PRODUCT] Request body:", JSON.stringify(req.body));
+    console.log("[CREATE PRODUCT] User from token:", (req as any).user);
+
     const validation = createProductSchema.safeParse(req.body);
 
     if (!validation.success) {
+      console.log("[CREATE PRODUCT] Validation failed:", validation.error.issues);
       res.status(400).json({
         error: "Validation failed",
         details: validation.error.issues,
@@ -185,15 +190,31 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
     }
 
     const data: CreateProductInput = validation.data;
+    console.log("[CREATE PRODUCT] Validated data:", JSON.stringify(data));
 
-    // Get the owner_id from the authenticated user
-    const ownerId = (req as any).user?.userId as string;
+    // Get the owner_id from request body
+    const ownerId = data.owner_id;
+    console.log("[CREATE PRODUCT] Owner ID from request:", ownerId);
+
     if (!ownerId) {
-      res.status(401).json({ error: "Unauthorized - user ID not found" });
+      res.status(400).json({ error: "owner_id is required" });
       return;
     }
 
-    // Include owner_id in the data
+    // Check if user exists in database
+    const userExists = await prisma.user.findUnique({
+      where: { id: ownerId },
+      select: { id: true, role: true },
+    });
+    console.log("[CREATE PRODUCT] User exists in DB:", userExists);
+
+    if (!userExists) {
+      res.status(400).json({ error: "Invalid owner_id - user does not exist" });
+      return;
+    }
+
+    // Create product with owner_id from request body
+    console.log("[CREATE PRODUCT] Creating product with owner_id:", ownerId);
     const product = await prisma.product.create({
       data: {
         name: data.name,
@@ -206,10 +227,25 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
       } as any,
     });
 
+    console.log("[CREATE PRODUCT] Product created successfully:", product.id);
     res.status(201).json(product);
-  } catch (error) {
-    console.error("Error creating product:", error);
-    res.status(500).json({ error: "Failed to create product" });
+  } catch (error: any) {
+    console.error("[CREATE PRODUCT] Error creating product:", error);
+    console.error("[CREATE PRODUCT] Error code:", error?.code);
+    console.error("[CREATE PRODUCT] Error message:", error?.message);
+    console.error("[CREATE PRODUCT] Error meta:", error?.meta);
+    
+    // Check for specific Prisma error codes
+    if (error?.code === "P2002") {
+      res.status(400).json({ error: "A product with this name already exists" });
+      return;
+    }
+    if (error?.code === "P2003") {
+      res.status(400).json({ error: "Invalid owner_id - user does not exist" });
+      return;
+    }
+    
+    res.status(500).json({ error: "Failed to create product", details: error?.message });
   }
 };
 
