@@ -6,9 +6,8 @@ import { z } from "zod";
 
 type PrismaTx = Prisma.TransactionClient;
 
-// Zod validation schema
+// Zod validation schema - user_id removed, will be extracted from JWT
 const createOrderSchema = z.object({
-  user_id: z.string().uuid(),
   reservation_id: z.string().uuid(),
 });
 
@@ -97,6 +96,14 @@ const createOrderSchema = z.object({
  */
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Get user_id from JWT token (set by authenticate middleware)
+    const userId = (req as any).user?.userId;
+    
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized - user not found" });
+      return;
+    }
+
     const validation = createOrderSchema.safeParse(req.body);
 
     if (!validation.success) {
@@ -107,7 +114,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const { user_id, reservation_id } = validation.data;
+    const { reservation_id } = validation.data;
 
     const result = await prisma.$transaction(async (tx: PrismaTx) => {
       // Find the reservation
@@ -120,7 +127,8 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         throw new Error("Reservation not found");
       }
 
-      if (reservation.user_id !== user_id) {
+      // Use user_id from JWT token instead of request body
+      if (reservation.user_id !== userId) {
         throw new Error("Reservation does not belong to this user");
       }
 
@@ -138,7 +146,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       // Create the order
       const order = await tx.order.create({
         data: {
-          user_id,
+          user_id: userId,
           reservation_id,
           product_id: reservation.product_id,
           quantity: reservation.quantity,

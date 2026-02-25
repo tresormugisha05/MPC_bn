@@ -6,9 +6,8 @@ import { z } from "zod";
 
 type PrismaTx = Prisma.TransactionClient;
 
-// Zod validation schema
+// Zod validation schema - user_id removed, will be extracted from JWT
 const createReservationSchema = z.object({
-  user_id: z.string().uuid(),
   product_id: z.string().uuid(),
   quantity: z.number().int().min(1),
 });
@@ -114,6 +113,14 @@ export const createReservation = async (
   res: Response
 ): Promise<void> => {
   try {
+    // Get user_id from JWT token (set by authenticate middleware)
+    const userId = (req as any).user?.userId;
+    
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized - user not found" });
+      return;
+    }
+
     const validation = createReservationSchema.safeParse(req.body);
 
     if (!validation.success) {
@@ -124,14 +131,26 @@ export const createReservation = async (
       return;
     }
 
-    const { user_id, product_id, quantity }: CreateReservationInput = validation.data;
+    const { product_id, quantity } = validation.data;
 
-    // Use transaction to ensure atomicity
+    // Use transaction with SELECT FOR UPDATE to prevent race conditions
     const result = await prisma.$transaction(async (tx: PrismaTx) => {
-      // Check product exists and has enough stock
-      const product = await tx.product.findUnique({
-        where: { id: product_id },
-      });
+      // Use raw query with SELECT FOR UPDATE to lock the product row
+      // This prevents race conditions where multiple users try to reserve simultaneously
+      const products = await tx.$queryRaw<Array<{
+        id: string;
+        name: string;
+        price: any;
+        stock: number;
+        is_active: boolean;
+      }>>`
+        SELECT id, name, price, stock, is_active 
+        FROM products 
+        WHERE id = ${product_id}
+        FOR UPDATE
+      `;
+
+      const product = products[0];
 
       if (!product) {
         throw new Error("Product not found");
@@ -141,11 +160,25 @@ export const createReservation = async (
         throw new Error("Product is not available");
       }
 
+      // Check for duplicate pending reservation - user can only have one pending reservation per product
+      const existingReservation = await tx.reservation.findFirst({
+        where: {
+          user_id: userId,
+          product_id: product_id,
+          status: "pending",
+        },
+      });
+
+      if (existingReservation) {
+        throw new Error("DUPLICATE_RESERVATION");
+      }
+
+      // Check stock after acquiring lock (now safe from race conditions)
       if (product.stock < quantity) {
         throw new Error("Insufficient stock");
       }
 
-      // Deduct stock
+      // Deduct stock atomically
       const updatedProduct = await tx.product.update({
         where: { id: product_id },
         data: { stock: { decrement: quantity } },
@@ -158,7 +191,7 @@ export const createReservation = async (
       // Create reservation
       const reservation = await tx.reservation.create({
         data: {
-          user_id,
+          user_id: userId,
           product_id,
           quantity,
           expires_at,
@@ -194,9 +227,13 @@ export const createReservation = async (
       return;
     }
     
-    // Return 409 for conflict errors (insufficient stock)
-    if (message === "Insufficient stock") {
-      res.status(409).json({ error: message });
+    // Return 409 for conflict errors (insufficient stock or duplicate reservation)
+    if (message === "Insufficient stock" || message === "DUPLICATE_RESERVATION") {
+      res.status(409).json({ 
+        error: message === "DUPLICATE_RESERVATION" 
+          ? "You already have a pending reservation for this product" 
+          : message 
+      });
       return;
     }
     
