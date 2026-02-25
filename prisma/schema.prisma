@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum ReservationStatus {
+  pending
+  completed
+  expired
+  cancelled
+}
+
+enum InventoryLogReason {
+  reserved
+  expired
+  checkout
+  cancelled
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+/// 2.1  User
+model User {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String   @unique @db.VarChar(150)
+  password   String // bcrypt hash
+  name       String   @db.VarChar(100)
+  created_at DateTime @default(now())
+
+  reservations Reservation[]
+  orders       Order[]
+  products     Product[]
+
+  @@map("users")
+}
+
+/// 2.2  Product
+/// ⚠️  stock MUST never go negative — enforce via atomic transactions
+model Product {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(150)
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  /// ⚠️ CRITICAL — never allow this to go below 0
+  stock       Int
+  image_url   String?
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+
+  /// Owner - user who created this product
+  owner_id String @db.Uuid
+  owner    User   @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+
+  reservations   Reservation[]
+  orders         Order[]
+  inventory_logs InventoryLog[]
+
+  @@index([owner_id])
+  @@map("products")
+}
+
+/// 2.3  Reservation
+/// stock is deducted immediately on creation;
+/// restored by the cron job when status → expired
+model Reservation {
+  id         String            @id @default(uuid()) @db.Uuid
+  user_id    String            @db.Uuid
+  product_id String            @db.Uuid
+  quantity   Int
+  status     ReservationStatus @default(pending)
+  expires_at DateTime // created_at + 5 minutes
+  created_at DateTime          @default(now())
+
+  user    User    @relation(fields: [user_id], references: [id])
+  product Product @relation(fields: [product_id], references: [id])
+  order   Order?
+
+  inventory_logs InventoryLog[]
+
+  @@index([user_id])
+  @@index([product_id])
+  @@index([status, expires_at])
+  @@map("reservations")
+}
+
+/// 2.4  Order
+/// Created when user completes checkout before reservation expires.
+/// One reservation → one order (enforced by UNIQUE on reservation_id).
+model Order {
+  id             String   @id @default(uuid()) @db.Uuid
+  user_id        String   @db.Uuid
+  reservation_id String   @unique @db.Uuid
+  product_id     String   @db.Uuid
+  quantity       Int
+  total_price    Decimal  @db.Decimal(10, 2) // quantity × price at checkout time
+  created_at     DateTime @default(now())
+
+  user        User        @relation(fields: [user_id], references: [id])
+  reservation Reservation @relation(fields: [reservation_id], references: [id])
+  product     Product     @relation(fields: [product_id], references: [id])
+
+  @@index([user_id])
+  @@map("orders")
+}
+
+/// 2.5  InventoryLog  (Audit Trail)
+/// Immutable — never delete rows.
+/// change < 0 = stock deducted, change > 0 = stock restored.
+model InventoryLog {
+  id             String             @id @default(uuid()) @db.Uuid
+  product_id     String             @db.Uuid
+  change         Int // negative = deducted, positive = restored
+  reason         InventoryLogReason
+  reservation_id String?            @db.Uuid
+  stock_before   Int
+  stock_after    Int
+  created_at     DateTime           @default(now())
+
+  product     Product      @relation(fields: [product_id], references: [id])
+  reservation Reservation? @relation(fields: [reservation_id], references: [id])
+
+  @@index([product_id])
+  @@map("inventory_logs")
+}
