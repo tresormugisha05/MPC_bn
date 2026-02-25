@@ -17,11 +17,14 @@ const PORT = config.server.port;
 app.use(helmet());
 app.use(cors({
   origin: [
+    "https://mpctest-black.vercel.app",
     "https://mpctest-git-master-tresor-mugishas-projects.vercel.app",
-    "http://localhost:3000",
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "http://localhost:3000"
   ],
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json());
 app.use(requestLogger);
