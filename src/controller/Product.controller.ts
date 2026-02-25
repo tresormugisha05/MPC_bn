@@ -204,7 +204,7 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
     // Check if user exists in database
     const userExists = await prisma.user.findUnique({
       where: { id: ownerId },
-      select: { id: true, role: true },
+      select: { id: true},
     });
     console.log("[CREATE PRODUCT] User exists in DB:", userExists);
 
