@@ -15,7 +15,14 @@ dotenv.config();
 const app = express();
 const PORT = config.server.port;
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: [
+    "https://mpctest-git-master-tresor-mugishas-projects.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:5173"
+  ],
+  credentials: true
+}));
 app.use(express.json());
 app.use(requestLogger);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
