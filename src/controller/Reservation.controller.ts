@@ -21,6 +21,38 @@ const RESERVATION_EXPIRY_MINUTES = 5;
 /**
  * @swagger
  * /reservations:
+ *   get:
+ *     summary: List all reservations
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all reservations
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+export const listReservations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const reservations = await prisma.reservation.findMany({
+      include: {
+        product: true,
+        user: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { created_at: "desc" },
+    });
+    res.json(reservations);
+  } catch (error) {
+    console.error("Error fetching reservations:", error);
+    res.status(500).json({ error: "Failed to fetch reservations" });
+  }
+};
+
+/**
+ * @swagger
+ * /reservations:
  *   post:
  *     summary: Create a new reservation
  *     tags: [Reservations]

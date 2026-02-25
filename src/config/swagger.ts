@@ -10,7 +10,11 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: "http://localhost:3000",
+        url: "https://mpc-bn.onrender.com",
+        description: "Production server",
+      },
+      {
+        url: "http://localhost:5000",
         description: "Development server",
       },
     ],

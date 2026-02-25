@@ -9,6 +9,11 @@ datasource db {
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
+enum Role {
+  admin
+  customer
+}
+
 enum ReservationStatus {
   pending
   completed
@@ -31,6 +36,7 @@ model User {
   email      String   @unique @db.VarChar(150)
   password   String // bcrypt hash
   name       String   @db.VarChar(100)
+  role       Role     @default(customer)
   created_at DateTime @default(now())
 
   reservations Reservation[]
