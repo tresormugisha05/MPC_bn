@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { Prisma, PrismaClient } from "@prisma/client";
 import prisma from "../lib/prisma";
-import { CreateOrderInput } from "../models/order.model";
 import { z } from "zod";
 
 type PrismaTx = Prisma.TransactionClient;

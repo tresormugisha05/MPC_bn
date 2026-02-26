@@ -258,7 +258,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
  */
 export const getMe = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.body.userId
+    const userId = (req as any).user?.userId;
 
     if (!userId) {
       res.status(401).json({ error: "Unauthorized" });

@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma";
-import { CreateReservationInput } from "../models/reservation.model";
 import { z } from "zod";
 
 type PrismaTx = Prisma.TransactionClient;
@@ -146,7 +145,7 @@ export const createReservation = async (
       }>>`
         SELECT id, name, price, stock, is_active 
         FROM products 
-        WHERE id = ${product_id}
+        WHERE id = ${product_id}::uuid
         FOR UPDATE
       `;
 

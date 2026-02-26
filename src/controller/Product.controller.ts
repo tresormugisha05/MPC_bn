@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma";
-import { CreateProductInput, UpdateProductInput } from "../models/product.model";
+import { CreateProductInput, UpdateProductInput } from "../types/product";
 import { z } from "zod";
 
 // Zod validation schemas

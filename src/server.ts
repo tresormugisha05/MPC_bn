@@ -4,7 +4,7 @@ import helmet from "helmet";
 import dotenv from "dotenv";
 import swaggerUi = require("swagger-ui-express");
 import prisma from "./lib/prisma";
-import { userRoutes, usersRoutes, productRoutes, reservationRoutes, orderRoutes } from "./Routes";
+import { authRoutes, usersRoutes, productRoutes, reservationRoutes, orderRoutes } from "./Routes";
 import { requestLogger } from "./middleware/logger";
 import { errorHandler } from "./middleware/errorHandler";
 import { startReservationExpiryJob } from "./jobs/reservationExpiry";
@@ -39,7 +39,7 @@ app.get("/health", (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   });
 });
-app.use("/auth", userRoutes);
+app.use("/auth", authRoutes);
 app.use("/users", usersRoutes);
 app.use("/products", productRoutes);
 app.use("/reservations", reservationRoutes);
