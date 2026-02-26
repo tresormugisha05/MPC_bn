@@ -143,8 +143,8 @@ export const createReservation = async (
         stock: number;
         is_active: boolean;
       }>>`
-        SELECT id, name, price, stock, is_active 
-        FROM products 
+        SELECT id, name, price, stock, is_active
+        FROM products
         WHERE id = ${product_id}::uuid
         FOR UPDATE
       `;

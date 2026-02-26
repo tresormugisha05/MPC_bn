@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma";
 import { CreateUserInput, LoginUserInput } from "../models/user.model";
 import { registerSchema, loginSchema } from "../validations/user.validation";
@@ -96,7 +97,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         name,
         role: "customer",
       },
-    } as any);
+    });
 
     // Generate JWT token
     const token = jwt.sign({ userId: user.id }, config.jwt.secret, {
@@ -108,13 +109,22 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: (user as any).role || "customer",
+        role: user.role,
       },
       token,
     });
   } catch (error) {
     console.error("Error registering user:", error);
-    res.status(500).json({ error: "Failed to register user" });
+    
+    // Handle Prisma unique constraint error
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        res.status(400).json({ error: "Email already registered" });
+        return;
+      }
+    }
+    
+    res.status(500).json({ error: "Failed to register user", details: error instanceof Error ? error.message : "Unknown error" });
   }
 };
 
