@@ -310,7 +310,25 @@ export const getReservation = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    res.json(reservation);
+    // Transform snake_case to camelCase for frontend compatibility
+    const transformedReservation = {
+      id: reservation.id,
+      productId: reservation.product_id,
+      userId: reservation.user_id,
+      quantity: reservation.quantity,
+      expiresAt: reservation.expires_at.toISOString(),
+      status: reservation.status,
+      product: reservation.product ? {
+        id: reservation.product.id,
+        name: reservation.product.name,
+        description: reservation.product.description,
+        price: reservation.product.price,
+        stock: reservation.product.stock,
+        image_url: reservation.product.image_url,
+      } : null,
+    };
+
+    res.json(transformedReservation);
   } catch (error) {
     console.error("Error fetching reservation:", error);
     res.status(500).json({ error: "Failed to fetch reservation" });
