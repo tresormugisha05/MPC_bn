@@ -4,12 +4,12 @@ import prisma from "../lib/prisma";
 import { CreateProductInput, UpdateProductInput } from "../types/product";
 import { z } from "zod";
 
-// Zod validation schemas
+// Zod validation schemas - using coerce to handle string/number inputs
 const createProductSchema = z.object({
   name: z.string().min(1).max(150),
   description: z.string().optional(),
-  price: z.number().positive(),
-  stock: z.number().int().min(0),
+  price: z.coerce.number().positive(),
+  stock: z.coerce.number().int().min(0),
   image_url: z.string().optional(),
   is_active: z.boolean().optional(),
 });
@@ -17,8 +17,8 @@ const createProductSchema = z.object({
 const updateProductSchema = z.object({
   name: z.string().min(1).max(150).optional(),
   description: z.string().optional(),
-  price: z.number().positive().optional(),
-  stock: z.number().int().min(0).optional(),
+  price: z.coerce.number().positive().optional(),
+  stock: z.coerce.number().int().min(0).optional(),
   image_url: z.string().optional(),
   is_active: z.boolean().optional(),
 });
