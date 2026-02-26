@@ -10,7 +10,7 @@ export interface CreateProductInput {
   stock: number;
   image_url?: string;
   is_active?: boolean;
-  owner_id: string;
+  owner_id?: string; // Now optional - obtained from auth token
 }
 
 export interface UpdateProductInput {
