@@ -212,10 +212,17 @@ export const createReservation = async (
       return { reservation, product: updatedProduct };
     });
 
-    res.status(201).json({
-      reservation: result.reservation,
-      message: `Reservation created. Expires in ${RESERVATION_EXPIRY_MINUTES} minutes.`,
-    });
+    // Transform snake_case to camelCase for frontend compatibility
+    const transformedReservation = {
+      id: result.reservation.id,
+      productId: result.reservation.product_id,
+      userId: result.reservation.user_id,
+      quantity: result.reservation.quantity,
+      expiresAt: result.reservation.expires_at.toISOString(),
+      status: result.reservation.status,
+    };
+
+    res.status(201).json(transformedReservation);
   } catch (error: any) {
     console.error("Error creating reservation:", error);
     const message = error instanceof Error ? error.message : "Failed to create reservation";

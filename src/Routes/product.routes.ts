@@ -169,4 +169,22 @@ router.put("/:id", authenticate, requireAdmin, ProductController.updateProduct);
  */
 router.delete("/:id", authenticate, requireAdmin, ProductController.deleteProduct);
 
+/**
+ * @swagger
+ * /products/all:
+ *   delete:
+ *     summary: Permanently delete all products (Admin only)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All products deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
+ */
+router.delete("/all", authenticate, requireAdmin, ProductController.deleteAllProducts);
+
 export default router;

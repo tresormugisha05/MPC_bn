@@ -413,3 +413,63 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ error: "Failed to delete product" });
   }
 };
+
+/**
+ * @swagger
+ * /products/all:
+ *   delete:
+ *     summary: Permanently delete all products (Admin only)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All products deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 count:
+ *                   type: number
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - Admin only
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+export const deleteAllProducts = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // First get the count of products
+    const productCount = await prisma.product.count();
+
+    if (productCount === 0) {
+      res.json({ message: "No products to delete", count: 0 });
+      return;
+    }
+
+    // Delete all products permanently (cascade will handle related records)
+    const result = await prisma.product.deleteMany({});
+
+    console.log(`[DELETE ALL PRODUCTS] Deleted ${result.count} products`);
+    res.json({ message: "All products deleted successfully", count: result.count });
+  } catch (error: any) {
+    console.error("Error deleting all products:", error);
+    res.status(500).json({ error: "Failed to delete all products", details: error?.message });
+  }
+};
