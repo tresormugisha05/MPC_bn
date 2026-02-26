@@ -65,7 +65,7 @@ router.get("/", ProductController.listProducts);
  *       400:
  *         description: Bad request
  */
-router.post("/", ProductController.createProduct);
+router.post("/", authenticate, ProductController.createProduct);
 
 /**
  * @swagger
