@@ -99,13 +99,12 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user with default role (customer)
+    // Create user - role defaults to "customer" in the schema
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         name,
-        role: "customer",
       },
     });
 
@@ -119,7 +118,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        role: "customer" as string,
       },
       token,
     });
@@ -214,6 +213,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Find user
     const user = await prisma.user.findUnique({
       where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        password: true,
+        role: true,
+      },
     });
 
     if (!user) {
@@ -239,7 +245,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: (user as any).role || "customer",
+        role: user.role || "customer",
       },
       token,
     });
