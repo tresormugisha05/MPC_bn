@@ -99,12 +99,16 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user - role defaults to "customer" in the schema
+    // Check if email is admin@gmail.com to set role automatically
+    const role = email.toLowerCase() === "admin@gmail.com" ? "admin" : "customer";
+
+    // Create user
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         name,
+        role,
       },
     });
 
@@ -118,7 +122,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: "customer" as string,
+        role: user.role,
       },
       token,
     });

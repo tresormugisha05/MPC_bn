@@ -195,7 +195,6 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
     // Get the owner_id from request body
     const ownerId = data.owner_id;
     console.log("[CREATE PRODUCT] Owner ID from request:", ownerId);
-
     if (!ownerId) {
       res.status(400).json({ error: "owner_id is required" });
       return;
