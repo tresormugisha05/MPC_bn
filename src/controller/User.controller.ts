@@ -67,10 +67,20 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const validation = registerSchema.safeParse(req.body);
 
     if (!validation.success) {
-      res.status(400).json({
-        error: "Validation failed",
-        details: validation.error.issues,
-      });
+      // Convert Zod errors to user-friendly messages
+      const firstError = validation.error.issues[0];
+      const field = String(firstError.path[0]);
+      
+      let message = "Please check your input and try again";
+      if (field === 'email') {
+        message = "Please enter a valid email address";
+      } else if (field === 'password') {
+        message = "Password must be at least 6 characters";
+      } else if (field === 'name') {
+        message = "Please enter your name";
+      }
+      
+      res.status(400).json({ error: message });
       return;
     }
 
@@ -185,10 +195,17 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const validation = loginSchema.safeParse(req.body);
 
     if (!validation.success) {
-      res.status(400).json({
-        error: "Validation failed",
-        details: validation.error.issues,
-      });
+      const firstError = validation.error.issues[0];
+      const field = String(firstError.path[0]);
+      
+      let message = "Please check your input and try again";
+      if (field === 'email') {
+        message = "Please enter a valid email address";
+      } else if (field === 'password') {
+        message = "Please enter your password";
+      }
+      
+      res.status(400).json({ error: message });
       return;
     }
 

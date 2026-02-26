@@ -1,7 +1,10 @@
+// Load environment variables FIRST before any other imports
+import dotenv from "dotenv";
+dotenv.config();
+
 import express, { Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
-import dotenv from "dotenv";
 import swaggerUi = require("swagger-ui-express");
 import prisma from "./lib/prisma";
 import { authRoutes, usersRoutes, productRoutes, reservationRoutes, orderRoutes } from "./Routes";
@@ -10,7 +13,6 @@ import { errorHandler } from "./middleware/errorHandler";
 import { startReservationExpiryJob } from "./jobs/reservationExpiry";
 import { config } from "./config";
 import { swaggerSpec } from "./config/swagger";
-dotenv.config();
 
 const app = express();
 const PORT = config.server.port;
@@ -83,6 +85,7 @@ app.listen(PORT, () => {
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`📈 Metrics: http://localhost:${PORT}/metrics`);
   console.log(`📚 Swagger UI: http://localhost:${PORT}/api-docs`);
+  console.log(`🔑 JWT Secret loaded: ${config.jwt.secret ? 'YES' : 'NO'}`);
 });
 
 export default app;

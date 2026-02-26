@@ -20,13 +20,19 @@ export const authenticate = (
     }
 
     const token = authHeader.substring(7);
+    
+    // Debug: Log token info (remove in production)
+    console.log("JWT Secret being used:", config.jwt.secret ? "SET" : "NOT SET");
+    console.log("Token payload:", token.split('.')[1] ? "Valid format" : "Invalid format");
+    
     const decoded = jwt.verify(token, config.jwt.secret) as {
       userId: string;
     };
 
-    (req as any).user = decoded; // ✅ THIS is correct
+    (req as any).user = decoded;
     next();
-  } catch {
+  } catch (error) {
+    console.error("JWT Verification Error:", error instanceof Error ? error.message : "Unknown error");
     res.status(401).json({ error: "Invalid token" });
   }
 };
