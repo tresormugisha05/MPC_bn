@@ -14,26 +14,78 @@ export const authenticate = (
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      res.status(401).json({ error: "No token provided" });
+    // Detailed error messages for debugging 401 issues
+    if (!authHeader) {
+      res.status(401).json({ 
+        error: "Authorization header missing",
+        message: "Please login to make a reservation",
+        code: "NO_AUTH_HEADER"
+      });
+      return;
+    }
+
+    if (!authHeader.startsWith("Bearer ")) {
+      res.status(401).json({ 
+        error: "Invalid authorization format",
+        message: "Token should be sent as 'Bearer <token>'",
+        code: "INVALID_AUTH_FORMAT"
+      });
       return;
     }
 
     const token = authHeader.substring(7);
     
+    if (!token || token.trim() === "") {
+      res.status(401).json({ 
+        error: "Token is empty",
+        message: "Please provide a valid token",
+        code: "EMPTY_TOKEN"
+      });
+      return;
+    }
+    
     // Debug: Log token info (remove in production)
     console.log("JWT Secret being used:", config.jwt.secret ? "SET" : "NOT SET");
-    console.log("Token payload:", token.split('.')[1] ? "Valid format" : "Invalid format");
+    console.log("Token received, length:", token.length);
     
     const decoded = jwt.verify(token, config.jwt.secret) as {
       userId: string;
     };
 
+    if (!decoded.userId) {
+      res.status(401).json({ 
+        error: "Invalid token payload",
+        message: "Token does not contain user information",
+        code: "INVALID_TOKEN_PAYLOAD"
+      });
+      return;
+    }
+
     (req as any).user = decoded;
     next();
   } catch (error) {
     console.error("JWT Verification Error:", error instanceof Error ? error.message : "Unknown error");
-    res.status(401).json({ error: "Invalid token" });
+    
+    // Provide more specific error messages
+    if (error instanceof jwt.TokenExpiredError) {
+      res.status(401).json({ 
+        error: "Token expired",
+        message: "Please login again to continue",
+        code: "TOKEN_EXPIRED"
+      });
+      return;
+    }
+    
+    if (error instanceof jwt.JsonWebTokenError) {
+      res.status(401).json({ 
+        error: "Invalid token",
+        message: "Please login again",
+        code: "INVALID_TOKEN"
+      });
+      return;
+    }
+    
+    res.status(401).json({ error: "Authentication failed" });
   }
 };
 

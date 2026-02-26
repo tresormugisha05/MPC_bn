@@ -112,11 +112,18 @@ export const createReservation = async (
   res: Response
 ): Promise<void> => {
   try {
+    // Debug: Log request info
+    console.log("=== Reservation Request Debug ===");
+    console.log("Headers:", JSON.stringify(req.headers, null, 2));
+    console.log("Authorization header:", req.headers.authorization ? "Present" : "Missing");
+    
     // Get user_id from JWT token (set by authenticate middleware)
     const userId = (req as any).user?.userId;
+    console.log("User ID from token:", userId);
     
     if (!userId) {
-      res.status(401).json({ error: "Unauthorized - user not found" });
+      console.log("ERROR: No userId found in request - authentication likely failed");
+      res.status(401).json({ error: "Unauthorized - user not found. Please login first." });
       return;
     }
 
